@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Home, BarChart2, CheckSquare, Settings as SettingsIcon, LogOut, Clock } from 'lucide-react';
+import { Home, BarChart2, ListChecks, Settings as SettingsIcon, LogOut, Clock } from 'lucide-react';
 
 interface SidebarProps {
   className?: string;
@@ -15,6 +15,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
 
   const menuItems = [
     { name: 'Home', path: '/', icon: Home },
+    { name: 'Logs', path: '/logs', icon: ListChecks },
     { name: 'Analytics', path: '/analytics', icon: BarChart2 },
     { name: 'Settings', path: '/settings', icon: SettingsIcon },
   ];

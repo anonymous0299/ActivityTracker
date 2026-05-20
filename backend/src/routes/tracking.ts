@@ -5,7 +5,7 @@ import { FocusSession } from '../models/FocusSession';
 import { Settings } from '../models/Settings';
 import { classifyActivity } from '../services/classifier';
 import { mergeActivityIntoSession } from '../services/sessionMerger';
-import { syncSessionToClockify } from '../services/clockify';
+import { syncSessionToClockify, fetchClockifyProjects } from '../services/clockify';
 import { io } from '../server';
 
 const router = Router();
@@ -151,13 +151,48 @@ router.get('/today-summary', protect, async (req: AuthRequest, res: Response) =>
   }
 });
 
+// @desc    Get Clockify unsynced sessions
+// @route   GET /api/tracking/unsynced-sessions
+// @access  Private
+router.get('/unsynced-sessions', protect, async (req: AuthRequest, res: Response) => {
+  try {
+    const sessions = await FocusSession.find({
+      userId: req.user._id,
+      syncedToClockify: false,
+      skipped: false,
+    }).sort({ startTime: -1 });
+
+    return res.status(200).json({ sessions });
+  } catch (error: any) {
+    console.error('Unsynced sessions error:', error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+// @desc    Get Clockify projects for settings/account
+// @route   GET /api/tracking/clockify-projects
+// @access  Private
+router.get('/clockify-projects', protect, async (req: AuthRequest, res: Response) => {
+  try {
+    const result = await fetchClockifyProjects(req.user._id.toString());
+    if (result.success) {
+      return res.status(200).json({ projects: result.projects });
+    }
+    return res.status(400).json({ message: result.message });
+  } catch (error: any) {
+    console.error('Clockify projects error:', error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
 // @desc    Manually sync a Focus Session to Clockify
 // @route   POST /api/tracking/sync-clockify/:sessionId
 // @access  Private
 router.post('/sync-clockify/:sessionId', protect, async (req: AuthRequest, res: Response) => {
   try {
     const { sessionId } = req.params;
-    const result = await syncSessionToClockify(req.user._id.toString(), sessionId);
+    const { projectId } = req.body;
+    const result = await syncSessionToClockify(req.user._id.toString(), sessionId, projectId);
     if (result.success) {
       return res.status(200).json(result);
     } else {
@@ -165,6 +200,56 @@ router.post('/sync-clockify/:sessionId', protect, async (req: AuthRequest, res: 
     }
   } catch (error: any) {
     console.error('Manual sync error:', error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+// @desc    Skip an unsynced focus session from UI logs
+// @route   PUT /api/tracking/skip-session/:sessionId
+// @access  Private
+router.put('/skip-session/:sessionId', protect, async (req: AuthRequest, res: Response) => {
+  try {
+    const { sessionId } = req.params;
+    const session = await FocusSession.findOne({ _id: sessionId, userId: req.user._id });
+    if (!session) {
+      return res.status(404).json({ message: 'Session not found.' });
+    }
+    session.skipped = true;
+    await session.save();
+    return res.status(200).json({ success: true, message: 'Session skipped.' });
+  } catch (error: any) {
+    console.error('Skip session error:', error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+// @desc    Sync all unsynced sessions to Clockify
+// @route   POST /api/tracking/sync-clockify-all
+// @access  Private
+router.post('/sync-clockify-all', protect, async (req: AuthRequest, res: Response) => {
+  try {
+    const { projectId } = req.body;
+    const sessions = await FocusSession.find({
+      userId: req.user._id,
+      syncedToClockify: false,
+      skipped: false,
+    });
+
+    const results = [] as { sessionId: string; success: boolean; message: string }[];
+    for (const session of sessions) {
+      const result = await syncSessionToClockify(req.user._id.toString(), session._id.toString(), projectId);
+      results.push({ sessionId: session._id.toString(), success: result.success, message: result.message });
+    }
+
+    const successCount = results.filter(r => r.success).length;
+    return res.status(200).json({
+      success: true,
+      total: sessions.length,
+      synced: successCount,
+      results,
+    });
+  } catch (error: any) {
+    console.error('Sync all sessions error:', error);
     return res.status(500).json({ message: error.message });
   }
 });

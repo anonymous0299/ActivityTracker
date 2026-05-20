@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { io, Socket } from 'socket.io-client';
 import axios from 'axios';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, Award, Activity, ShieldAlert, Monitor, Circle, ListFilter, Play, Pause, RefreshCw } from 'lucide-react';
+import { Clock, Award, Activity, Monitor, Circle, ListFilter, Play, Pause } from 'lucide-react';
 
 interface FocusSessionType {
   _id: string;
@@ -45,9 +44,7 @@ const Dashboard = () => {
 
   const [trackingEnabled, setTrackingEnabled] = useState(true);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
-  const [syncingId, setSyncingId] = useState<string | null>(null);
-  
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<number | null>(null);
   const socketRef = useRef<Socket | null>(null);
 
   const fetchTodaySummary = async () => {
@@ -152,24 +149,6 @@ const Dashboard = () => {
         console.error('Failed to toggle tracking:', error);
       }
     }
-  };
-
-  const handleSyncClockify = async (sessionId: string) => {
-    setSyncingId(sessionId);
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const response = await axios.post(`http://localhost:5005/api/tracking/sync-clockify/${sessionId}`, {}, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (response.data.success) {
-          fetchTodaySummary();
-        }
-      } catch (error: any) {
-        alert(error.response?.data?.message || 'Failed to sync to Clockify. Configure your API key and Workspace ID in Settings page.');
-      }
-    }
-    setSyncingId(null);
   };
 
   const formatTimer = (totalSeconds: number) => {
@@ -385,16 +364,9 @@ const Dashboard = () => {
                             Synced
                           </span>
                         ) : (
-                          <button
-                            onClick={() => handleSyncClockify(session._id)}
-                            disabled={syncingId === session._id}
-                            className="flex items-center gap-1 text-[10px] bg-purple-600/90 hover:bg-purple-600 disabled:opacity-50 text-white font-bold px-2.5 py-1 rounded cursor-pointer transition-colors active:scale-95 border border-purple-500/30"
-                          >
-                            {syncingId === session._id ? (
-                              <RefreshCw className="h-2.5 w-2.5 animate-spin" />
-                            ) : null}
-                            Sync
-                          </button>
+                          <span className="text-[10px] bg-yellow-500/10 text-yellow-300 font-bold px-2 py-0.5 rounded border border-yellow-500/20">
+                            Not logged
+                          </span>
                         )}
                       </div>
                     </div>

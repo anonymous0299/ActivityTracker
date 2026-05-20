@@ -11,6 +11,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
+import Logs from './pages/Logs';
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
@@ -54,6 +55,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Analytics />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/logs" 
+              element={
+                <ProtectedRoute>
+                  <Logs />
                 </ProtectedRoute>
               } 
             />
