@@ -50,6 +50,37 @@ def load_token():
             pass
     return None
 
+def is_tracking_enabled():
+
+    token = load_token()
+
+    if not token:
+        return True
+
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    try:
+        response = requests.get(
+            "http://localhost:5005/api/settings",
+            headers=headers,
+            timeout=5
+        )
+
+        if response.status_code == 200:
+            settings = response.json()
+
+            return settings.get(
+                "trackingEnabled",
+                True
+            )
+
+    except Exception as e:
+        logging.error(f"Settings error: {e}")
+
+    return True
+
 def send_ping_to_backend(appName, windowTitle, browserUrl, isIdle, timestamp):
     token = load_token()
     if not token:

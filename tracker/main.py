@@ -5,7 +5,12 @@ from config import PING_INTERVAL, IDLE_THRESHOLD
 from modules.win_tracker import get_active_window
 from modules.browser_tracker import get_browser_url
 from modules.idle_detector import get_idle_duration
-from modules.sync_client import init_db, send_ping_to_backend, start_token_receiver_server
+from modules.sync_client import (
+    init_db,
+    send_ping_to_backend,
+    start_token_receiver_server,
+    is_tracking_enabled
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -15,27 +20,60 @@ logging.basicConfig(
     ]
 )
 
+
+def clean_app_name(app_name):
+    """
+    Remove .exe and format app name nicely
+    Example:
+    chrome.exe -> Chrome
+    spotify.exe -> Spotify
+    code.exe -> Code
+    """
+
+    if not app_name:
+        return ""
+
+    return (
+        app_name
+        .removesuffix(".exe")
+        .replace("_", " ")
+        .title()
+    )
+
+
 def main():
     logging.info("Starting WorkTrack AI Background Agent...")
-    
+
     # 1. Initialize SQLite storage database
     init_db()
-    
+
     # 2. Spawn token synchronizer thread
     start_token_receiver_server()
-    
-    logging.info("Agent started successfully. Listening for active window changes...")
+
+    logging.info(
+        "Agent started successfully. Listening for active window changes..."
+    )
 
     while True:
         try:
+            if not is_tracking_enabled():
+                logging.info("Tracking paused by user.")
+                time.sleep(PING_INTERVAL)
+                continue
             # 3. Retrieve system idle state
             idle_sec = get_idle_duration()
             is_idle = idle_sec >= IDLE_THRESHOLD
 
-            timestamp = datetime.datetime.utcnow().isoformat() + "Z"
+            timestamp = (
+                datetime.datetime.utcnow().isoformat()
+                + "Z"
+            )
 
             if is_idle:
-                logging.info(f"User is IDLE ({idle_sec:.1f}s inactive). Sending idle ping...")
+                logging.info(
+                    f"User is IDLE ({idle_sec:.1f}s inactive). Sending idle ping..."
+                )
+
                 send_ping_to_backend(
                     appName="System Idle",
                     windowTitle="User is Idle",
@@ -43,30 +81,51 @@ def main():
                     isIdle=True,
                     timestamp=timestamp
                 )
+
             else:
                 # 4. Extract foreground window title/app
                 app_name, window_title = get_active_window()
-                
+
                 if app_name and window_title:
+
+                    # Clean app name
+                    cleaned_app_name = clean_app_name(
+                        app_name
+                    )
+
                     # 5. Extract browser URL if foreground app is a browser
-                    browser_url = get_browser_url(app_name, window_title)
-                    
-                    logging.info(f"Active window: {app_name} | {window_title} | URL: {browser_url}")
-                    
+                    browser_url = get_browser_url(
+                        app_name,
+                        window_title
+                    )
+
+                    logging.info(
+                        f"Active window: "
+                        f"{cleaned_app_name} | "
+                        f"{window_title} | "
+                        f"URL: {browser_url}"
+                    )
+
                     send_ping_to_backend(
-                        appName=app_name,
+                        appName=cleaned_app_name,
                         windowTitle=window_title,
-                        browserUrl=browser_url or "",
+                        browserUrl="",
                         isIdle=False,
                         timestamp=timestamp
                     )
+
                 else:
-                    logging.debug("No foreground window active.")
-                    
+                    logging.debug(
+                        "No foreground window active."
+                    )
+
         except Exception as e:
-            logging.error(f"Error in tracking loop: {e}")
-            
+            logging.error(
+                f"Error in tracking loop: {e}"
+            )
+
         time.sleep(PING_INTERVAL)
+
 
 if __name__ == "__main__":
     main()
