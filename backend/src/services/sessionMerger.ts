@@ -32,8 +32,9 @@ export const mergeActivityIntoSession = async (
   }
 
   // Calculate gap between last ping time of session and current ping
+  // We use Math.abs to handle slightly out-of-order pings gracefully without creating huge bounds
   const sessionLastPingTime = new Date(activeSession.endTime);
-  const gapSeconds = Math.round((now.getTime() - sessionLastPingTime.getTime()) / 1000);
+  const gapSeconds = Math.abs(Math.round((now.getTime() - sessionLastPingTime.getTime()) / 1000));
 
   // If the user was away / idle for a while (gap is larger than, say, 30 seconds)
   // we close the active session and start a new one
@@ -60,7 +61,12 @@ export const mergeActivityIntoSession = async (
   // The ping is contiguous.
   // If the category is the same, we simply extend the active session
   if (activeSession.category === rawActivity.category) {
-    activeSession.endTime = now;
+    if (now > activeSession.endTime) {
+      activeSession.endTime = now;
+    }
+    if (now < activeSession.startTime) {
+      activeSession.startTime = now;
+    }
     activeSession.durationSeconds += rawActivity.durationSeconds;
     activeSession.activityName = rawActivity.windowTitle || rawActivity.appName;
     await activeSession.save();
@@ -103,7 +109,12 @@ export const mergeActivityIntoSession = async (
   } else {
     // It's a temporary switch. We extend the current session but keep its original category!
     // This merges the temporary switch into the active workflow.
-    activeSession!.endTime = now;
+    if (now > activeSession!.endTime) {
+      activeSession!.endTime = now;
+    }
+    if (now < activeSession!.startTime) {
+      activeSession!.startTime = now;
+    }
     activeSession!.durationSeconds += rawActivity.durationSeconds;
     await activeSession!.save();
   }

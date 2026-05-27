@@ -94,52 +94,27 @@ def send_ping_to_backend(appName, windowTitle, browserUrl, isIdle, timestamp):
         "Content-Type": "application/json"
     }
     
-    payload = {
-        "appName": appName,
-        "windowTitle": windowTitle,
-        "browserUrl": browserUrl,
-        "isIdle": isIdle,
-        "timestamp": timestamp
-    }
-
-    try:
-        response = requests.post(BACKEND_URL, json=payload, headers=headers, timeout=5)
-        if response.status_code == 200:
-            # Sync succeeded, check if we need to sync offline buffer
-            sync_offline_buffer(headers)
-            return True
-        elif response.status_code == 401:
-            logging.error("Unauthorized ping: Token expired or invalid.")
-            save_ping_offline(appName, windowTitle, browserUrl, isIdle, timestamp)
-            # Remove invalid token
-            if os.path.exists(CONFIG_FILE):
-                try:
-                    os.remove(CONFIG_FILE)
-                except Exception:
-                    pass
-        else:
-            logging.warning(f"Failed to post ping: HTTP {response.status_code}. Cached offline.")
-            save_ping_offline(appName, windowTitle, browserUrl, isIdle, timestamp)
-    except Exception as e:
-        logging.warning(f"Network error syncing ping: {e}. Cached offline.")
-        save_ping_offline(appName, windowTitle, browserUrl, isIdle, timestamp)
-        
-    return False
+    # Always save the live ping offline FIRST to guarantee chronological order
+    save_ping_offline(appName, windowTitle, browserUrl, isIdle, timestamp)
+    
+    # Then sync the entire offline buffer in chronological order
+    return sync_offline_buffer(headers)
 
 def sync_offline_buffer(headers):
     try:
         conn = sqlite3.connect(SQLITE_DB)
         cursor = conn.cursor()
-        cursor.execute("SELECT id, appName, windowTitle, browserUrl, isIdle, timestamp FROM pending_pings LIMIT 20")
+        cursor.execute("SELECT id, appName, windowTitle, browserUrl, isIdle, timestamp FROM pending_pings ORDER BY id ASC LIMIT 50")
         rows = cursor.fetchall()
         
         if not rows:
             conn.close()
-            return
+            return True
 
         logging.info(f"Syncing {len(rows)} cached offline logs...")
         
         to_delete = []
+        success = True
         for row in rows:
             db_id, appName, windowTitle, browserUrl, isIdle, timestamp = row
             payload = {
@@ -153,9 +128,20 @@ def sync_offline_buffer(headers):
                 res = requests.post(BACKEND_URL, json=payload, headers=headers, timeout=5)
                 if res.status_code == 200:
                     to_delete.append(db_id)
+                elif res.status_code == 401:
+                    logging.error("Unauthorized ping: Token expired or invalid.")
+                    if os.path.exists(CONFIG_FILE):
+                        try:
+                            os.remove(CONFIG_FILE)
+                        except Exception:
+                            pass
+                    success = False
+                    break
                 else:
+                    success = False
                     break  # Stop syncing if we hit a server error
             except Exception:
+                success = False
                 break  # Stop syncing if network went down again
 
         if to_delete:
@@ -163,8 +149,10 @@ def sync_offline_buffer(headers):
             conn.commit()
             
         conn.close()
+        return success
     except Exception as e:
         logging.error(f"Error syncing offline buffer: {e}")
+        return False
 
 # Tiny HTTP Server to receive token from the React client automatically
 class TokenReceiverHandler(BaseHTTPRequestHandler):
@@ -175,18 +163,22 @@ class TokenReceiverHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.send_header('Access-Control-Allow-Headers', '*')
         self.end_headers()
 
     def do_POST(self):
         try:
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
-            data = json.loads(post_data.decode('utf-8'))
+            content_length = self.headers.get('Content-Length')
+            if content_length:
+                post_data = self.rfile.read(int(content_length))
+                data = json.loads(post_data.decode('utf-8'))
+            else:
+                data = {}
             
             token = data.get('token')
             self.send_response(200)
             self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Access-Control-Allow-Headers', '*')
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
 
@@ -204,7 +196,7 @@ class TokenReceiverHandler(BaseHTTPRequestHandler):
 def start_token_receiver_server():
     def run_server():
         try:
-            server = HTTPServer(('localhost', 5050), TokenReceiverHandler)
+            server = HTTPServer(('127.0.0.1', 5050), TokenReceiverHandler)
             logging.info("Local token receiver gateway initialized on port 5050.")
             server.serve_forever()
         except Exception as e:
