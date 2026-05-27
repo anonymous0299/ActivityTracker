@@ -28,9 +28,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 group-hover:scale-105 transition-transform duration-300">
             <Clock className="h-5 w-5 animate-pulse" />
           </div>
-          <span className="text-md font-bold tracking-tight text-white">
-            WorkTrack <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">AI</span>
-          </span>
+            <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Trackify</span>
         </Link>
 
         {/* Navigation Items */}

@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { TrendingUp, PieChart as PieIcon } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 
 const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#14b8a6', '#f59e0b', '#3b82f6'];
 
@@ -18,7 +19,7 @@ const Analytics = () => {
       const token = localStorage.getItem('token');
       if (token) {
         try {
-          const res = await axios.get('http://localhost:5005/api/tracking/today-summary', {
+          const res = await axios.get(`${API_BASE_URL}/api/tracking/today-summary`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           setData(res.data);
@@ -94,7 +95,7 @@ const Analytics = () => {
                       dataKey="value"
                       stroke="none"
                     >
-                      {data.categories.map((entry, index) => (
+                      {data.categories.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>

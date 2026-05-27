@@ -6,9 +6,11 @@ import { protect, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecretactivationkey12345';
+
 // Generate JWT token
 const generateToken = (id: string): string => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'supersecretactivationkey12345', {
+  return jwt.sign({ id }, JWT_SECRET, {
     expiresIn: '30d',
   });
 };

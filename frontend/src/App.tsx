@@ -1,4 +1,4 @@
-import React from 'react';
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -6,12 +6,12 @@ import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
 
 // Pages
-import Register from './pages/Register';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import Analytics from './pages/Analytics';
-import Settings from './pages/Settings';
-import Logs from './pages/Logs';
+const Register = lazy(() => import('./pages/Register'));
+const Login = lazy(() => import('./pages/Login'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Analytics = lazy(() => import('./pages/Analytics'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Logs = lazy(() => import('./pages/Logs'));
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
@@ -36,48 +36,50 @@ function App() {
     <Router>
       <AuthProvider>
         <Layout>
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/register" element={<Register />} />
-            <Route path="/login" element={<Login />} />
+          <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-white">Loading...</div>}>
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/register" element={<Register />} />
+              <Route path="/login" element={<Login />} />
 
-            {/* Protected Routes */}
-            <Route 
-              path="/" 
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/analytics" 
-              element={
-                <ProtectedRoute>
-                  <Analytics />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/logs" 
-              element={
-                <ProtectedRoute>
-                  <Logs />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/settings" 
-              element={
-                <ProtectedRoute>
-                  <Settings />
-                </ProtectedRoute>
-              } 
-            />
+              {/* Protected Routes */}
+              <Route 
+                path="/" 
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/analytics" 
+                element={
+                  <ProtectedRoute>
+                    <Analytics />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/logs" 
+                element={
+                  <ProtectedRoute>
+                    <Logs />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/settings" 
+                element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                } 
+              />
 
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              {/* Fallback */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </Layout>
       </AuthProvider>
     </Router>

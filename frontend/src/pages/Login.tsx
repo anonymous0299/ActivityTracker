@@ -59,7 +59,7 @@ const Login = () => {
             <Clock className="h-6 w-6 animate-pulse" />
           </div>
           <h2 className="text-3xl font-extrabold tracking-tight text-white">
-            Welcome to WorkTrack <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">AI</span>
+              <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Welcome to Trackify</span>
           </h2>
           <p className="mt-2 text-sm text-slate-400">
             Sign in to start tracking focus sessions automatically

@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
 
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecretactivationkey12345';
+
 export interface AuthRequest extends Request {
   user?: any;
 }
@@ -18,7 +20,7 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
       token = req.headers.authorization.split(' ')[1];
 
       // Verify token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecretactivationkey12345') as { id: string };
+      const decoded = jwt.verify(token, JWT_SECRET) as { id: string };
 
       // Get user from token, exclude password hash
       req.user = await User.findById(decoded.id).select('-passwordHash');

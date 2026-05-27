@@ -1,5 +1,6 @@
-import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
+import { createContext, useState, useEffect, useContext, type ReactNode } from 'react';
 import axios from 'axios';
+import { API_BASE_URL, TRACKER_URL } from '../config';
 
 interface UserProfile {
   _id: string;
@@ -17,14 +18,14 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const BACKEND_URL = 'http://localhost:5005/api';
+const BACKEND_URL = `${API_BASE_URL}/api`;
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   const syncTokenToTracker = (token: string) => {
-    axios.post('http://localhost:5050/token', { token }).catch(() => {
+    axios.post(`${TRACKER_URL}/token`, { token }).catch(() => {
       // Ignore if tracker is offline
     });
   };

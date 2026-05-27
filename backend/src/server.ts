@@ -14,6 +14,11 @@ import tasksRoutes from './routes/tasks';
 // Load environment variables
 dotenv.config();
 
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+  console.error('JWT_SECRET must be defined in production. Exiting.');
+  process.exit(1);
+}
+
 // Connect to MongoDB
 connectDB();
 
@@ -30,6 +35,7 @@ const io = new Server(server, {
 });
 
 // Middlewares
+app.set('trust proxy', 1);
 app.use(cors());
 app.use(express.json());
 
@@ -41,7 +47,7 @@ app.use('/api/tasks', tasksRoutes);
 
 // Health check endpoint
 app.get('/', (req: Request, res: Response) => {
-  res.send('WorkTrack AI backend engine is operating successfully.');
+  res.send('Trackify backend engine is operating successfully.');
 });
 
 // Socket.io Connection Handler

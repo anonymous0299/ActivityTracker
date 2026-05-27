@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { ArrowRight, ArrowLeft, RotateCw, CheckCircle2, XCircle, ClipboardList } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
 interface FocusSessionType {
   _id: string;
@@ -33,7 +34,7 @@ const Logs = () => {
   const fetchSessions = async () => {
     if (!authHeaders) return;
     try {
-      const response = await axios.get('http://localhost:5005/api/tracking/unsynced-sessions', {
+      const response = await axios.get(`${API_BASE_URL}/api/tracking/unsynced-sessions`, {
         headers: authHeaders,
       });
       setSessions(response.data.sessions || []);
@@ -48,7 +49,7 @@ const Logs = () => {
   const fetchProjects = async () => {
     if (!authHeaders) return;
     try {
-      const response = await axios.get('http://localhost:5005/api/tracking/clockify-projects', {
+      const response = await axios.get(`${API_BASE_URL}/api/tracking/clockify-projects`, {
         headers: authHeaders,
       });
       setProjects(response.data.projects || []);
@@ -80,7 +81,7 @@ const Logs = () => {
     if (!authHeaders) return;
     setSkippingId(sessionId);
     try {
-      await axios.put(`http://localhost:5005/api/tracking/skip-session/${sessionId}`, {}, {
+      await axios.put(`${API_BASE_URL}/api/tracking/skip-session/${sessionId}`, {}, {
         headers: authHeaders,
       });
       setSessions((prev) => prev.filter((session) => session._id !== sessionId));
@@ -99,7 +100,7 @@ const Logs = () => {
     setMessage(null);
     try {
       const response = await axios.post(
-        `http://localhost:5005/api/tracking/sync-clockify/${session._id}`,
+        `${API_BASE_URL}/api/tracking/sync-clockify/${session._id}`,
         { projectId: selectedProjectId || undefined },
         { headers: authHeaders }
       );
@@ -122,7 +123,7 @@ const Logs = () => {
     setMessage(null);
     try {
       const response = await axios.post(
-        'http://localhost:5005/api/tracking/sync-clockify-all',
+        `${API_BASE_URL}/api/tracking/sync-clockify-all`,
         { projectId: selectedProjectId || undefined },
         { headers: authHeaders }
       );

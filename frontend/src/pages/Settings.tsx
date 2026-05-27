@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Shield, Key, Sliders, ToggleLeft, ToggleRight, Save, CheckCircle } from 'lucide-react';
+import { Key, Sliders, ToggleLeft, ToggleRight, Save, CheckCircle } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
 const Settings = () => {
   const [settings, setSettings] = useState({
@@ -23,7 +24,7 @@ const Settings = () => {
       const token = localStorage.getItem('token');
       if (token) {
         try {
-          const response = await axios.get('http://localhost:5005/api/settings', {
+          const response = await axios.get(`${API_BASE_URL}/api/settings`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           const { trackingEnabled, idleTimeoutMinutes, mergeThresholdMinutes, clockify } = response.data;
@@ -55,7 +56,7 @@ const Settings = () => {
     const token = localStorage.getItem('token');
     if (token) {
       try {
-        await axios.put('http://localhost:5005/api/settings', settings, {
+        await axios.put(`${API_BASE_URL}/api/settings`, settings, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setSuccess(true);
@@ -82,7 +83,7 @@ const Settings = () => {
           Configurations
         </h1>
         <p className="text-sm text-slate-400 mt-1">
-          Adjust background tracking thresholds, toggle privacy, and integrate Clockify automation.
+          Adjust background tracking thresholds and integrate Clockify automation.
         </p>
       </div>
 
@@ -102,24 +103,6 @@ const Settings = () => {
           </h3>
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <label className="text-sm font-semibold text-slate-200">Active Telemetry Tracking</label>
-                <p className="text-xs text-slate-400">Allow tracker daemon to log background activities</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSettings(prev => ({ ...prev, trackingEnabled: !prev.trackingEnabled }))}
-                className="text-slate-300 hover:text-white transition-colors"
-              >
-                {settings.trackingEnabled ? (
-                  <ToggleRight className="h-10 w-10 text-indigo-400" />
-                ) : (
-                  <ToggleLeft className="h-10 w-10 text-slate-600" />
-                )}
-              </button>
-            </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-slate-400">Idle Trigger Threshold (Minutes)</label>

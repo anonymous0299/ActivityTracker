@@ -75,7 +75,7 @@ const Register = () => {
             Create your account
           </h2>
           <p className="mt-2 text-sm text-slate-400">
-            Start tracking productivity with WorkTrack AI
+            Start tracking productivity with Trackify
           </p>
         </div>
 

@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { io, Socket } from 'socket.io-client';
 import axios from 'axios';
 import { Clock, Award, Activity, Monitor, Circle, ListFilter, Play, Pause } from 'lucide-react';
+import { API_BASE_URL, SOCKET_URL } from '../config';
 
 interface FocusSessionType {
   _id: string;
@@ -51,7 +52,7 @@ const Dashboard = () => {
     const token = localStorage.getItem('token');
     if (token) {
       try {
-        const response = await axios.get('http://localhost:5005/api/tracking/today-summary', {
+        const response = await axios.get(`${API_BASE_URL}/api/tracking/today-summary`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setStats(response.data);
@@ -71,7 +72,7 @@ const Dashboard = () => {
     const token = localStorage.getItem('token');
     if (token) {
       try {
-        const response = await axios.get('http://localhost:5005/api/settings', {
+        const response = await axios.get(`${API_BASE_URL}/api/settings`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setTrackingEnabled(response.data.trackingEnabled !== false);
@@ -86,7 +87,7 @@ const Dashboard = () => {
     fetchSettings();
     
     // Connect to Websocket server
-    const socket = io('http://localhost:5005');
+    const socket = io(SOCKET_URL);
     socketRef.current = socket;
 
     socket.on('connect', () => {
@@ -137,7 +138,7 @@ const Dashboard = () => {
     if (token) {
       try {
         const newStatus = !trackingEnabled;
-        await axios.put('http://localhost:5005/api/settings', { trackingEnabled: newStatus }, {
+        await axios.put(`${API_BASE_URL}/api/settings`, { trackingEnabled: newStatus }, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setTrackingEnabled(newStatus);

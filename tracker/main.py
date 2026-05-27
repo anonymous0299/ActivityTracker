@@ -1,6 +1,9 @@
 import time
 import datetime
 import logging
+import subprocess
+import os
+
 from config import PING_INTERVAL, IDLE_THRESHOLD
 from modules.win_tracker import get_active_window
 from modules.browser_tracker import get_browser_url
@@ -15,21 +18,11 @@ from modules.sync_client import (
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        logging.StreamHandler()
-    ]
+    handlers=[logging.StreamHandler()]
 )
 
 
 def clean_app_name(app_name):
-    """
-    Remove .exe and format app name nicely
-    Example:
-    chrome.exe -> Chrome
-    spotify.exe -> Spotify
-    code.exe -> Code
-    """
-
     if not app_name:
         return ""
 
@@ -41,13 +34,56 @@ def clean_app_name(app_name):
     )
 
 
+def start_services():
+    """
+    Start backend and frontend automatically
+    """
+
+    try:
+        # Get root project folder
+        BASE_DIR = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..")
+        )
+
+        backend_path = os.path.join(BASE_DIR, "backend")
+        frontend_path = os.path.join(BASE_DIR, "frontend")
+
+        logging.info("Starting backend server...")
+
+        subprocess.Popen(
+            ["cmd", "/c", "npm run dev"],
+            cwd=backend_path
+        )
+
+        time.sleep(5)
+
+        logging.info("Starting frontend server...")
+
+        subprocess.Popen(
+            ["cmd", "/c", "npm run dev"],
+            cwd=frontend_path
+        )
+
+        time.sleep(5)
+
+        logging.info("Frontend + Backend started.")
+
+    except Exception as e:
+        logging.error(
+            f"Failed to start services: {e}"
+        )
+
+
 def main():
     logging.info("Starting WorkTrack AI Background Agent...")
 
-    # 1. Initialize SQLite storage database
+    # Start frontend/backend
+    start_services()
+
+    # Initialize DB
     init_db()
 
-    # 2. Spawn token synchronizer thread
+    # Start token receiver
     start_token_receiver_server()
 
     logging.info(
@@ -60,18 +96,19 @@ def main():
                 logging.info("Tracking paused by user.")
                 time.sleep(PING_INTERVAL)
                 continue
-            # 3. Retrieve system idle state
+
             idle_sec = get_idle_duration()
             is_idle = idle_sec >= IDLE_THRESHOLD
 
             timestamp = (
-                datetime.datetime.utcnow().isoformat()
-                + "Z"
+                datetime.datetime.now(
+                    datetime.UTC
+                ).isoformat()
             )
 
             if is_idle:
                 logging.info(
-                    f"User is IDLE ({idle_sec:.1f}s inactive). Sending idle ping..."
+                    f"User is IDLE ({idle_sec:.1f}s inactive)."
                 )
 
                 send_ping_to_backend(
@@ -83,17 +120,14 @@ def main():
                 )
 
             else:
-                # 4. Extract foreground window title/app
                 app_name, window_title = get_active_window()
 
                 if app_name and window_title:
 
-                    # Clean app name
                     cleaned_app_name = clean_app_name(
                         app_name
                     )
 
-                    # 5. Extract browser URL if foreground app is a browser
                     browser_url = get_browser_url(
                         app_name,
                         window_title
@@ -112,11 +146,6 @@ def main():
                         browserUrl="",
                         isIdle=False,
                         timestamp=timestamp
-                    )
-
-                else:
-                    logging.debug(
-                        "No foreground window active."
                     )
 
         except Exception as e:

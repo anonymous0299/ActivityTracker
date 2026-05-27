@@ -1,7 +1,7 @@
 {
   "name": "worktrack-backend",
   "version": "1.0.0",
-  "description": "TypeScript backend for WorkTrack AI",
+  "description": "TypeScript backend for Trackify",
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc",
