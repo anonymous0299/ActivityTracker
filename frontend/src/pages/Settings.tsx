@@ -14,8 +14,9 @@ const Settings = () => {
       autoSync: false,
     },
     hrms: {
-      apiUrl: 'https://hrms-web-prod.onrender.com/time/timer',
+      apiUrl: 'https://hrms-api-prod.onrender.com/api/v1',
       apiKey: '',
+      workspaceId: '',
       autoSync: false,
     },
   });
@@ -43,8 +44,9 @@ const Settings = () => {
               autoSync: !!clockify?.autoSync,
             },
             hrms: {
-              apiUrl: hrms?.apiUrl || 'https://hrms-web-prod.onrender.com/time/timer',
+              apiUrl: hrms?.apiUrl || 'https://hrms-api-prod.onrender.com/api/v1',
               apiKey: hrms?.apiKey || '',
+              workspaceId: hrms?.workspaceId || '',
               autoSync: !!hrms?.autoSync,
             },
           });
@@ -231,6 +233,20 @@ const Settings = () => {
                 onChange={e => setSettings(prev => ({
                   ...prev,
                   hrms: { ...prev.hrms, apiKey: e.target.value }
+                }))}
+                className="premium-input w-full"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-400">HRMS Workspace ID</label>
+              <input
+                type="text"
+                placeholder="Enter HRMS Workspace ID..."
+                value={settings.hrms.workspaceId}
+                onChange={e => setSettings(prev => ({
+                  ...prev,
+                  hrms: { ...prev.hrms, workspaceId: e.target.value }
                 }))}
                 className="premium-input w-full"
               />

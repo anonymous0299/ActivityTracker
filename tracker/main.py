@@ -143,7 +143,7 @@ def main():
                     send_ping_to_backend(
                         appName=cleaned_app_name,
                         windowTitle=window_title,
-                        browserUrl="",
+                        browserUrl=browser_url,
                         isIdle=False,
                         timestamp=timestamp
                     )

@@ -115,7 +115,7 @@ const Logs = () => {
       } else {
         response = await axios.post(
           `${API_BASE_URL}/api/tracking/sync-hrms/${session._id}`,
-          {},
+          { projectId: selectedProjectId || undefined },
           { headers: authHeaders }
         );
       }
@@ -147,7 +147,7 @@ const Logs = () => {
       } else {
         response = await axios.post(
           `${API_BASE_URL}/api/tracking/sync-hrms-all`,
-          {},
+          { projectId: selectedProjectId || undefined },
           { headers: authHeaders }
         );
       }

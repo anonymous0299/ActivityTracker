@@ -43,7 +43,7 @@ export const syncSessionToHrms = async (
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'X-Api-Key': apiKey,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
         'Idempotency-Key': idempotencyKey,
       },
@@ -97,7 +97,7 @@ export const fetchHrmsProjects = async (
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'X-Api-Key': apiKey,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
     });
@@ -108,7 +108,7 @@ export const fetchHrmsProjects = async (
     }
 
     const resData = (await response.json()) as any;
-    const projects = resData.data || [];
+    const projects = resData.data?.items || resData.data || [];
     const mappedProjects = Array.isArray(projects)
       ? projects.map((project: any) => ({ id: project.id, name: project.name }))
       : [];

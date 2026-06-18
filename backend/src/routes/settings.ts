@@ -25,8 +25,9 @@ router.get('/', protect, async (req: AuthRequest, res: Response) => {
           autoSync: false,
         },
         hrms: {
-          apiUrl: 'https://hrms-web-prod.onrender.com/time/timer',
+          apiUrl: 'https://hrms-api-prod.onrender.com/api/v1',
           apiKey: '',
+          workspaceId: '',
           autoSync: false,
         },
         privacy: {
