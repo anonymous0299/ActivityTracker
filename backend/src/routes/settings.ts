@@ -24,6 +24,11 @@ router.get('/', protect, async (req: AuthRequest, res: Response) => {
           projectIdMap: new Map(),
           autoSync: false,
         },
+        hrms: {
+          apiUrl: 'https://hrms-web-prod.onrender.com/time/timer',
+          apiKey: '',
+          autoSync: false,
+        },
         privacy: {
           ignoreUrls: [],
           ignoreAppNames: [],
@@ -49,7 +54,7 @@ router.put('/', protect, async (req: AuthRequest, res: Response) => {
       settings = new Settings({ userId: req.user._id });
     }
 
-    const { theme, trackingEnabled, idleTimeoutMinutes, mergeThresholdMinutes, clockify, privacy } = req.body;
+    const { theme, trackingEnabled, idleTimeoutMinutes, mergeThresholdMinutes, clockify, hrms, privacy } = req.body;
 
     if (theme !== undefined) settings.theme = theme;
     if (trackingEnabled !== undefined) settings.trackingEnabled = trackingEnabled;
@@ -59,6 +64,12 @@ router.put('/', protect, async (req: AuthRequest, res: Response) => {
       settings.clockify = {
         ...settings.clockify,
         ...clockify,
+      };
+    }
+    if (hrms !== undefined) {
+      settings.hrms = {
+        ...settings.hrms,
+        ...hrms,
       };
     }
     if (privacy !== undefined) {

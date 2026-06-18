@@ -13,6 +13,11 @@ const Settings = () => {
       workspaceId: '',
       autoSync: false,
     },
+    hrms: {
+      apiUrl: 'https://hrms-web-prod.onrender.com/time/timer',
+      apiKey: '',
+      autoSync: false,
+    },
   });
 
   const [loading, setLoading] = useState(true);
@@ -27,7 +32,7 @@ const Settings = () => {
           const response = await axios.get(`${API_BASE_URL}/api/settings`, {
             headers: { Authorization: `Bearer ${token}` }
           });
-          const { trackingEnabled, idleTimeoutMinutes, mergeThresholdMinutes, clockify } = response.data;
+          const { trackingEnabled, idleTimeoutMinutes, mergeThresholdMinutes, clockify, hrms } = response.data;
           setSettings({
             trackingEnabled: trackingEnabled !== undefined ? trackingEnabled : true,
             idleTimeoutMinutes: idleTimeoutMinutes || 5,
@@ -36,6 +41,11 @@ const Settings = () => {
               apiKey: clockify?.apiKey || '',
               workspaceId: clockify?.workspaceId || '',
               autoSync: !!clockify?.autoSync,
+            },
+            hrms: {
+              apiUrl: hrms?.apiUrl || 'https://hrms-web-prod.onrender.com/time/timer',
+              apiKey: hrms?.apiKey || '',
+              autoSync: !!hrms?.autoSync,
             },
           });
         } catch (error) {
@@ -182,6 +192,65 @@ const Settings = () => {
               >
                 {settings.clockify.autoSync ? (
                   <ToggleRight className="h-10 w-10 text-purple-400" />
+                ) : (
+                  <ToggleLeft className="h-10 w-10 text-slate-600" />
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* HRMS Time Tracker Integration */}
+        <div className="premium-card p-6 rounded-2xl space-y-6">
+          <h3 className="text-sm font-bold text-white flex items-center gap-2">
+            <Key className="h-4.5 w-4.5 text-indigo-400" />
+            HRMS Time Tracker API
+          </h3>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-400">HRMS Endpoint URL</label>
+              <input
+                type="text"
+                placeholder="Enter HRMS endpoint URL..."
+                value={settings.hrms.apiUrl}
+                onChange={e => setSettings(prev => ({
+                  ...prev,
+                  hrms: { ...prev.hrms, apiUrl: e.target.value }
+                }))}
+                className="premium-input w-full"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-400">HRMS Authorization Token</label>
+              <input
+                type="password"
+                placeholder="Enter HRMS API Token (if required)..."
+                value={settings.hrms.apiKey}
+                onChange={e => setSettings(prev => ({
+                  ...prev,
+                  hrms: { ...prev.hrms, apiKey: e.target.value }
+                }))}
+                className="premium-input w-full"
+              />
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <div>
+                <label className="text-sm font-semibold text-slate-200">Automatic HRMS Syncing</label>
+                <p className="text-xs text-slate-400">Instantly push finished focus blocks to your HRMS</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSettings(prev => ({
+                  ...prev,
+                  hrms: { ...prev.hrms, autoSync: !prev.hrms.autoSync }
+                }))}
+                className="text-slate-300 hover:text-white transition-colors"
+              >
+                {settings.hrms.autoSync ? (
+                  <ToggleRight className="h-10 w-10 text-indigo-400" />
                 ) : (
                   <ToggleLeft className="h-10 w-10 text-slate-600" />
                 )}

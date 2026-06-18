@@ -2,6 +2,7 @@ import { FocusSession } from '../models/FocusSession';
 import { RawActivity } from '../models/RawActivity';
 import { Settings } from '../models/Settings';
 import { syncSessionToClockify } from './clockify';
+import { syncSessionToHrms } from './hrms';
 
 export const mergeActivityIntoSession = async (
   userId: string,
@@ -39,10 +40,15 @@ export const mergeActivityIntoSession = async (
   // If the user was away / idle for a while (gap is larger than, say, 30 seconds)
   // we close the active session and start a new one
   if (gapSeconds > 30) {
-    // Auto-sync closed session to Clockify
+    // Auto-sync closed session to integrations
     if (settings?.clockify?.autoSync) {
       syncSessionToClockify(userId, activeSession._id.toString()).catch((err) =>
         console.error('Auto-sync to Clockify error (gap):', err)
+      );
+    }
+    if (settings?.hrms?.autoSync) {
+      syncSessionToHrms(userId, activeSession._id.toString()).catch((err) =>
+        console.error('Auto-sync to HRMS error (gap):', err)
       );
     }
 
@@ -90,10 +96,15 @@ export const mergeActivityIntoSession = async (
   // If the new category is dominant (e.g. user spent more time in the new category than the old one in this window)
   // we split the session: close the old one and start a new one
   if (newCategoryCount > oldCategoryCount) {
-    // Auto-sync closed session to Clockify
+    // Auto-sync closed session to integrations
     if (settings?.clockify?.autoSync) {
       syncSessionToClockify(userId, activeSession._id.toString()).catch((err) =>
         console.error('Auto-sync to Clockify error (split):', err)
+      );
+    }
+    if (settings?.hrms?.autoSync) {
+      syncSessionToHrms(userId, activeSession._id.toString()).catch((err) =>
+        console.error('Auto-sync to HRMS error (split):', err)
       );
     }
 

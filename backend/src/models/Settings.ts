@@ -12,6 +12,11 @@ export interface ISettings extends Document {
     projectIdMap: Map<string, string>;
     autoSync: boolean;
   };
+  hrms: {
+    apiUrl: string;
+    apiKey: string;
+    autoSync: boolean;
+  };
   privacy: {
     ignoreUrls: string[];
     ignoreAppNames: string[];
@@ -29,6 +34,11 @@ const SettingsSchema = new Schema<ISettings>({
     apiKey: { type: String, default: '' },
     workspaceId: { type: String, default: '' },
     projectIdMap: { type: Map, of: String, default: {} },
+    autoSync: { type: Boolean, default: false }
+  },
+  hrms: {
+    apiUrl: { type: String, default: 'https://hrms-web-prod.onrender.com/time/timer' },
+    apiKey: { type: String, default: '' },
     autoSync: { type: Boolean, default: false }
   },
   privacy: {

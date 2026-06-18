@@ -8,8 +8,10 @@ export interface IFocusSession extends Document {
   activityName: string;
   category: string;
   syncedToClockify: boolean;
+  syncedToHrms: boolean;
   skipped?: boolean;
   clockifyTimeEntryId?: string;
+  hrmsTimeEntryId?: string;
   createdAt: Date;
 }
 
@@ -21,8 +23,10 @@ const FocusSessionSchema = new Schema<IFocusSession>({
   activityName: { type: String, required: true },
   category: { type: String, required: true, default: 'Other' },
   syncedToClockify: { type: Boolean, default: false },
+  syncedToHrms: { type: Boolean, default: false },
   skipped: { type: Boolean, default: false },
   clockifyTimeEntryId: { type: String },
+  hrmsTimeEntryId: { type: String },
   createdAt: { type: Date, default: Date.now }
 });
 

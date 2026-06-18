@@ -6,6 +6,7 @@ import { Settings } from '../models/Settings';
 import { classifyActivity } from '../services/classifier';
 import { mergeActivityIntoSession } from '../services/sessionMerger';
 import { syncSessionToClockify, fetchClockifyProjects } from '../services/clockify';
+import { syncSessionToHrms } from '../services/hrms';
 import { io } from '../server';
 
 const router = Router();
@@ -151,16 +152,24 @@ router.get('/today-summary', protect, async (req: AuthRequest, res: Response) =>
   }
 });
 
-// @desc    Get Clockify unsynced sessions
+// @desc    Get Clockify/HRMS unsynced sessions
 // @route   GET /api/tracking/unsynced-sessions
 // @access  Private
 router.get('/unsynced-sessions', protect, async (req: AuthRequest, res: Response) => {
   try {
-    const sessions = await FocusSession.find({
+    const type = req.query.type || 'clockify';
+    const query: any = {
       userId: req.user._id,
-      syncedToClockify: false,
-      skipped: false,
-    }).sort({ startTime: -1 });
+      skipped: false
+    };
+
+    if (type === 'hrms') {
+      query.syncedToHrms = false;
+    } else {
+      query.syncedToClockify = false;
+    }
+
+    const sessions = await FocusSession.find(query).sort({ startTime: -1 });
 
     return res.status(200).json({ sessions });
   } catch (error: any) {
@@ -250,6 +259,54 @@ router.post('/sync-clockify-all', protect, async (req: AuthRequest, res: Respons
     });
   } catch (error: any) {
     console.error('Sync all sessions error:', error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+// @desc    Manually sync a Focus Session to HRMS
+// @route   POST /api/tracking/sync-hrms/:sessionId
+// @access  Private
+router.post('/sync-hrms/:sessionId', protect, async (req: AuthRequest, res: Response) => {
+  try {
+    const { sessionId } = req.params;
+    const result = await syncSessionToHrms(req.user._id.toString(), sessionId);
+    if (result.success) {
+      return res.status(200).json(result);
+    } else {
+      return res.status(400).json(result);
+    }
+  } catch (error: any) {
+    console.error('Manual HRMS sync error:', error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+// @desc    Sync all unsynced sessions to HRMS
+// @route   POST /api/tracking/sync-hrms-all
+// @access  Private
+router.post('/sync-hrms-all', protect, async (req: AuthRequest, res: Response) => {
+  try {
+    const sessions = await FocusSession.find({
+      userId: req.user._id,
+      syncedToHrms: false,
+      skipped: false,
+    });
+
+    const results = [] as { sessionId: string; success: boolean; message: string }[];
+    for (const session of sessions) {
+      const result = await syncSessionToHrms(req.user._id.toString(), session._id.toString());
+      results.push({ sessionId: session._id.toString(), success: result.success, message: result.message });
+    }
+
+    const successCount = results.filter(r => r.success).length;
+    return res.status(200).json({
+      success: true,
+      total: sessions.length,
+      synced: successCount,
+      results,
+    });
+  } catch (error: any) {
+    console.error('Sync all HRMS sessions error:', error);
     return res.status(500).json({ message: error.message });
   }
 });

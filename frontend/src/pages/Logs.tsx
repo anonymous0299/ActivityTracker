@@ -27,6 +27,7 @@ const Logs = () => {
   const [skippingId, setSkippingId] = useState<string | null>(null);
   const [loggingAll, setLoggingAll] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [syncTarget, setSyncTarget] = useState<'clockify' | 'hrms'>('clockify');
 
   const token = localStorage.getItem('token');
   const authHeaders = token ? { Authorization: `Bearer ${token}` } : undefined;
@@ -34,7 +35,7 @@ const Logs = () => {
   const fetchSessions = async () => {
     if (!authHeaders) return;
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/tracking/unsynced-sessions`, {
+      const response = await axios.get(`${API_BASE_URL}/api/tracking/unsynced-sessions?type=${syncTarget}`, {
         headers: authHeaders,
       });
       setSessions(response.data.sessions || []);
@@ -63,8 +64,11 @@ const Logs = () => {
 
   useEffect(() => {
     fetchProjects();
-    fetchSessions();
   }, []);
+
+  useEffect(() => {
+    fetchSessions();
+  }, [syncTarget]);
 
   useEffect(() => {
     if (!selectedProjectId && projects.length > 0) {
@@ -99,11 +103,20 @@ const Logs = () => {
     setSavingId(session._id);
     setMessage(null);
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/api/tracking/sync-clockify/${session._id}`,
-        { projectId: selectedProjectId || undefined },
-        { headers: authHeaders }
-      );
+      let response;
+      if (syncTarget === 'clockify') {
+        response = await axios.post(
+          `${API_BASE_URL}/api/tracking/sync-clockify/${session._id}`,
+          { projectId: selectedProjectId || undefined },
+          { headers: authHeaders }
+        );
+      } else {
+        response = await axios.post(
+          `${API_BASE_URL}/api/tracking/sync-hrms/${session._id}`,
+          {},
+          { headers: authHeaders }
+        );
+      }
       if (response.data.success) {
         setMessage('Session logged successfully.');
         fetchSessions();
@@ -112,7 +125,7 @@ const Logs = () => {
         }
       }
     } catch (error: any) {
-      setMessage(error.response?.data?.message || 'Unable to log session. Please ensure Clockify settings are configured.');
+      setMessage(error.response?.data?.message || `Unable to log session. Please ensure ${syncTarget === 'clockify' ? 'Clockify' : 'HRMS'} settings are configured.`);
     }
     setSavingId(null);
   };
@@ -122,11 +135,20 @@ const Logs = () => {
     setLoggingAll(true);
     setMessage(null);
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/api/tracking/sync-clockify-all`,
-        { projectId: selectedProjectId || undefined },
-        { headers: authHeaders }
-      );
+      let response;
+      if (syncTarget === 'clockify') {
+        response = await axios.post(
+          `${API_BASE_URL}/api/tracking/sync-clockify-all`,
+          { projectId: selectedProjectId || undefined },
+          { headers: authHeaders }
+        );
+      } else {
+        response = await axios.post(
+          `${API_BASE_URL}/api/tracking/sync-hrms-all`,
+          {},
+          { headers: authHeaders }
+        );
+      }
       if (response.data.success) {
         setMessage(`${response.data.synced}/${response.data.total} session(s) logged successfully.`);
         setSessions([]);
@@ -149,7 +171,7 @@ const Logs = () => {
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-white">Logs</h1>
           <p className="text-sm text-slate-400 mt-1">
-            Review sessions that were not logged to Clockify and sync them manually.
+            Review sessions that were not logged to Clockify/HRMS and sync them manually.
           </p>
         </div>
 
@@ -160,12 +182,28 @@ const Logs = () => {
             className="inline-flex items-center gap-2 rounded-2xl bg-indigo-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:bg-slate-700"
           >
             {loggingAll ? <RotateCw className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-            Log all sessions
+            Log all sessions ({syncTarget === 'clockify' ? 'Clockify' : 'HRMS'})
           </button>
           <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">
             {sessions.length} session(s) pending
           </div>
         </div>
+      </div>
+
+      {/* Sync Target Tabs */}
+      <div className="flex border-b border-white/10">
+        <button
+          onClick={() => { setSyncTarget('clockify'); setSelectedSession(null); setMessage(null); }}
+          className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors ${syncTarget === 'clockify' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+        >
+          Clockify Logs
+        </button>
+        <button
+          onClick={() => { setSyncTarget('hrms'); setSelectedSession(null); setMessage(null); }}
+          className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors ${syncTarget === 'hrms' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+        >
+          HRMS Logs
+        </button>
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[320px_1fr]">
@@ -248,25 +286,36 @@ const Logs = () => {
                   </div>
                 </div>
               </div>
-
-              <div className="space-y-3 rounded-3xl border border-white/10 bg-slate-900/70 p-5">
-                <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Clockify Project</label>
-                {projects.length > 0 ? (
-                  <select
-                    value={selectedProjectId}
-                    onChange={(event) => setSelectedProjectId(event.target.value)}
-                    className="w-full rounded-2xl border border-white/10 bg-[#0d111a] px-4 py-3 text-sm text-white outline-none transition focus:border-indigo-500"
-                  >
-                    {projects.map((project) => (
-                      <option key={project.id} value={project.id}>{project.name}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <div className="rounded-2xl bg-slate-950/80 p-4 text-sm text-slate-400">
-                    No Clockify projects found. Please configure your Clockify API token and workspace ID in Settings.
+              {syncTarget === 'clockify' ? (
+                <div className="space-y-3 rounded-3xl border border-white/10 bg-slate-900/70 p-5">
+                  <label className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">Clockify Project</label>
+                  {projects.length > 0 ? (
+                    <select
+                      value={selectedProjectId}
+                      onChange={(event) => setSelectedProjectId(event.target.value)}
+                      className="w-full rounded-2xl border border-white/10 bg-[#0d111a] px-4 py-3 text-sm text-white outline-none transition focus:border-indigo-500"
+                    >
+                      {projects.map((project) => (
+                        <option key={project.id} value={project.id}>{project.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="rounded-2xl bg-slate-950/80 p-4 text-sm text-slate-400">
+                      No Clockify projects found. Please configure your Clockify API token and workspace ID in Settings.
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-3xl border border-white/10 bg-slate-900/70 p-5">
+                  <div className="text-xs uppercase tracking-[0.25em] text-slate-500">Destination Endpoint</div>
+                  <div className="mt-2 text-sm text-slate-300 font-mono break-all select-all">
+                    https://hrms-web-prod.onrender.com/time/timer
                   </div>
-                )}
-              </div>
+                  <p className="text-[10px] text-slate-500 mt-2">
+                    Time logs will be synced directly to your configured HRMS endpoint.
+                  </p>
+                </div>
+              )}
 
               {message ? (
                 <div className="rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
@@ -294,7 +343,7 @@ const Logs = () => {
                   <button
                     type="button"
                     onClick={() => handleLogSession(selectedSession)}
-                    disabled={!projects.length || savingId === selectedSession._id}
+                    disabled={savingId === selectedSession._id || (syncTarget === 'clockify' && !projects.length)}
                     className="inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:bg-slate-700"
                   >
                     {savingId === selectedSession._id ? <RotateCw className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
