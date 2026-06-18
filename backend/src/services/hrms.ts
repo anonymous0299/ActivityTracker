@@ -40,13 +40,19 @@ export const syncSessionToHrms = async (
     const idempotencyKey = randomUUID();
 
     console.log(`Syncing session ${sessionId} to HRMS API at ${url}`);
+    const requestHeaders: any = {
+      'Content-Type': 'application/json',
+      'Idempotency-Key': idempotencyKey,
+    };
+    if (apiKey.startsWith('eyJ')) {
+      requestHeaders['Authorization'] = `Bearer ${apiKey}`;
+    } else {
+      requestHeaders['X-Api-Key'] = apiKey;
+    }
+
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'Idempotency-Key': idempotencyKey,
-      },
+      headers: requestHeaders,
       body: JSON.stringify(body),
     });
 
@@ -94,12 +100,18 @@ export const fetchHrmsProjects = async (
     const url = `${apiUrl}/projects`;
 
     console.log(`Fetching HRMS projects from ${url}`);
+    const requestHeaders: any = {
+      'Content-Type': 'application/json',
+    };
+    if (apiKey.startsWith('eyJ')) {
+      requestHeaders['Authorization'] = `Bearer ${apiKey}`;
+    } else {
+      requestHeaders['X-Api-Key'] = apiKey;
+    }
+
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
+      headers: requestHeaders,
     });
 
     if (!response.ok) {
