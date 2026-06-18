@@ -6,7 +6,7 @@ import { Settings } from '../models/Settings';
 import { classifyActivity } from '../services/classifier';
 import { mergeActivityIntoSession } from '../services/sessionMerger';
 import { syncSessionToClockify, fetchClockifyProjects } from '../services/clockify';
-import { syncSessionToHrms } from '../services/hrms';
+import { syncSessionToHrms, fetchHrmsProjects } from '../services/hrms';
 import { io } from '../server';
 
 const router = Router();
@@ -269,7 +269,8 @@ router.post('/sync-clockify-all', protect, async (req: AuthRequest, res: Respons
 router.post('/sync-hrms/:sessionId', protect, async (req: AuthRequest, res: Response) => {
   try {
     const { sessionId } = req.params;
-    const result = await syncSessionToHrms(req.user._id.toString(), sessionId);
+    const { projectId } = req.body;
+    const result = await syncSessionToHrms(req.user._id.toString(), sessionId, projectId);
     if (result.success) {
       return res.status(200).json(result);
     } else {
@@ -286,6 +287,7 @@ router.post('/sync-hrms/:sessionId', protect, async (req: AuthRequest, res: Resp
 // @access  Private
 router.post('/sync-hrms-all', protect, async (req: AuthRequest, res: Response) => {
   try {
+    const { projectId } = req.body;
     const sessions = await FocusSession.find({
       userId: req.user._id,
       syncedToHrms: false,
@@ -294,7 +296,7 @@ router.post('/sync-hrms-all', protect, async (req: AuthRequest, res: Response) =
 
     const results = [] as { sessionId: string; success: boolean; message: string }[];
     for (const session of sessions) {
-      const result = await syncSessionToHrms(req.user._id.toString(), session._id.toString());
+      const result = await syncSessionToHrms(req.user._id.toString(), session._id.toString(), projectId);
       results.push({ sessionId: session._id.toString(), success: result.success, message: result.message });
     }
 
@@ -307,6 +309,22 @@ router.post('/sync-hrms-all', protect, async (req: AuthRequest, res: Response) =
     });
   } catch (error: any) {
     console.error('Sync all HRMS sessions error:', error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+// @desc    Get HRMS projects for settings/account
+// @route   GET /api/tracking/hrms-projects
+// @access  Private
+router.get('/hrms-projects', protect, async (req: AuthRequest, res: Response) => {
+  try {
+    const result = await fetchHrmsProjects(req.user._id.toString());
+    if (result.success) {
+      return res.status(200).json({ projects: result.projects });
+    }
+    return res.status(400).json({ message: result.message });
+  } catch (error: any) {
+    console.error('HRMS projects error:', error);
     return res.status(500).json({ message: error.message });
   }
 });
